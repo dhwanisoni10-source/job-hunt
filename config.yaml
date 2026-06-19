@@ -12,34 +12,56 @@ candidate:
 
 target:
   roles:
+    # Core PM focus
     - "Product Manager"
     - "Associate Product Manager"
     - "Clinical Product Manager"
     - "Health Tech Product Manager"
     - "Digital Health Product Manager"
+    # Broader remote 6-figure roles Dhwani can pivot into
+    - "Product Operations Manager"
+    - "Technical Program Manager"
+    - "Operations Manager"
+    - "Implementation Manager"
+    - "Customer Success Manager"
+    - "Solutions Engineer"
+    - "Data Analyst"
+    - "Business Analyst"
   industries:
     - "Healthcare"
     - "Digital Health"
     - "Health Tech"
     - "MedTech"
     - "Telehealth"
+    - "SaaS"
+    - "B2B Software"
   locations:
-    - "Michigan"
-    - "Detroit, MI"
     - "Remote"
-  experience_level: "mid"       # entry | mid | senior
-  min_salary: 75000             # optional filter
+    - "Remote USA"
+    - "United States"
+  experience_level: "mid"
+  min_salary: 100000            # 6-figure floor
   exclude_keywords:
     - "10+ years"
+    - "8+ years"
     - "VP"
     - "Director"
+    - "C-level"
+    - "clearance required"
 
 search:
   boards:
+    - remoteok
+    - weworkremotely
+    - himalayas
     - indeed
     - linkedin
-  max_jobs_per_run: 30
-  days_back: 7                  # only jobs posted in last N days
+  max_jobs_per_run: 100
+  days_back: 7
+  # Scoring gates — only keep jobs that pass BOTH thresholds
+  min_salary_score: 6           # 1-10; 6+ = likely $100k+
+  min_entry_score: 5            # 1-10; 5+ = realistic for pivot candidate
+  top_n: 25                     # surface this many ranked results
 
 outreach:
   send_cold_emails: true

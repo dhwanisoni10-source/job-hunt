@@ -16,6 +16,11 @@ class Job:
     job_id: Optional[str] = None
     found_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
+    salary_score: int = 0
+    entry_score: int = 0
+    total_score: int = 0
+    score_reasoning: str = ""
+
     def dedup_key(self) -> str:
         return f"{self.company.lower().strip()}::{self.title.lower().strip()}"
 

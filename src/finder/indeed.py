@@ -1,8 +1,8 @@
-import feedparser
 import urllib.parse
 from typing import List
 from src.models import Job
 from src.finder.base import BaseFinder
+from src.rss import parse_feed
 
 
 class IndeedFinder(BaseFinder):
@@ -18,16 +18,16 @@ class IndeedFinder(BaseFinder):
             "fromage": str(days_back),
         }
         url = f"{self.RSS_URL}?{urllib.parse.urlencode(params)}"
-        feed = feedparser.parse(url)
+        entries = parse_feed(url)
 
         jobs: List[Job] = []
-        for entry in feed.entries:
+        for entry in entries:
             title = entry.get("title", "")
             link = entry.get("link", "")
             summary = entry.get("summary", "")
             published = entry.get("published", "")
 
-            # Extract company from title (Indeed format: "Title - Company")
+            # Indeed format: "Title - Company"
             company = ""
             if " - " in title:
                 parts = title.rsplit(" - ", 1)

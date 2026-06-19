@@ -31,6 +31,10 @@ class Tracker:
                     salary TEXT,
                     found_at TEXT,
                     status TEXT DEFAULT 'found',
+                    salary_score INTEGER DEFAULT 0,
+                    entry_score INTEGER DEFAULT 0,
+                    total_score INTEGER DEFAULT 0,
+                    score_reasoning TEXT DEFAULT '',
                     tailored_resume TEXT DEFAULT '',
                     cover_letter TEXT DEFAULT '',
                     outreach_email TEXT DEFAULT '',
@@ -40,6 +44,12 @@ class Tracker:
                     updated_at TEXT
                 )
             """)
+            # Migrate existing DBs that lack score columns
+            for col in ("salary_score", "entry_score", "total_score", "score_reasoning"):
+                try:
+                    conn.execute(f"ALTER TABLE jobs ADD COLUMN {col} {'INTEGER DEFAULT 0' if col != 'score_reasoning' else 'TEXT DEFAULT '''}")
+                except Exception:
+                    pass
             conn.commit()
 
     def is_seen(self, job: Job) -> bool:
@@ -58,16 +68,28 @@ class Tracker:
             conn.execute(
                 """INSERT INTO jobs
                    (dedup_key, title, company, location, url, source, description,
-                    posted_date, salary, found_at, status, created_at, updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    posted_date, salary, found_at, status,
+                    salary_score, entry_score, total_score, score_reasoning,
+                    created_at, updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
                     job.dedup_key(), job.title, job.company, job.location,
                     job.url, job.source, job.description, job.posted_date,
-                    job.salary, job.found_at, "found", now, now,
+                    job.salary, job.found_at, "found",
+                    job.salary_score, job.entry_score, job.total_score, job.score_reasoning,
+                    now, now,
                 ),
             )
             conn.commit()
         return True
+
+    def get_top(self, n: int = 25) -> List[dict]:
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM jobs ORDER BY total_score DESC, entry_score DESC LIMIT ?", (n,)
+            ).fetchall()
+            return [dict(r) for r in rows]
 
     def update_application(self, app: Application):
         now = datetime.now().isoformat()
