@@ -11,3 +11,5 @@ google-api-python-client>=2.118.0
 gspread>=6.0.2
 rich>=13.7.0
 click>=8.1.7
+playwright>=1.44.0
+reportlab>=4.1.0

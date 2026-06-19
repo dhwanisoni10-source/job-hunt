@@ -3,13 +3,16 @@
 Job Hunt CLI
 
 Usage:
-  python run.py run        # find jobs, tailor resumes, create drafts
-  python run.py run --no-tailor   # find jobs only (no AI calls)
-  python run.py run --sheets      # also sync to Google Sheets
-  python run.py show       # show all tracked jobs
+  python run.py run              # find jobs, tailor resumes, create Gmail drafts
+  python run.py run --no-tailor  # find jobs only
+  python run.py run --sheets     # also sync to Google Sheets
+  python run.py apply            # auto-apply to tailored jobs via browser
+  python run.py apply --dry-run  # rehearse without submitting
+  python run.py apply --max 5    # cap at 5 applications per run
+  python run.py show             # list all tracked jobs
   python run.py show --status tailored
-  python run.py review <company>  # print tailored resume + cover letter for a company
-  python run.py stats      # show pipeline stats
+  python run.py review <company> # print tailored resume + cover letter
+  python run.py stats            # pipeline stats
 """
 
 import sys
@@ -141,5 +144,37 @@ def update(company, status, config_path):
     console.print(f"[green]Updated {n} job(s) to status '{status}'[/green]")
 
 
+@cli.command()
+@click.option("--max", "max_apps", default=10, show_default=True, help="Max applications per run")
+@click.option("--platform", "platforms", multiple=True, default=["linkedin", "indeed"],
+              help="Platforms to apply on (linkedin, indeed)")
+@click.option("--dry-run", is_flag=True, help="Fill forms but don't click Submit")
+@click.option("--config", "config_path", default="config.yaml")
+def apply(max_apps, platforms, dry_run, config_path):
+    """Auto-apply to tailored jobs using browser automation."""
+    from src.apply.pipeline import run_auto_apply
+    config = load_config(config_path)
+
+    if dry_run:
+        console.print("[cyan]DRY RUN — forms will be filled but not submitted[/cyan]")
+
+    missing = []
+    if "linkedin" in platforms and not os.getenv("LINKEDIN_EMAIL"):
+        missing.append("LINKEDIN_EMAIL and LINKEDIN_PASSWORD")
+    if "indeed" in platforms and not (os.getenv("INDEED_EMAIL") or os.getenv("LINKEDIN_EMAIL")):
+        missing.append("INDEED_EMAIL and INDEED_PASSWORD")
+    if missing:
+        console.print(f"[yellow]Add to .env: {', '.join(missing)}[/yellow]")
+        return
+
+    run_auto_apply(
+        config=config,
+        max_per_run=max_apps,
+        platforms=list(platforms),
+        dry_run=dry_run,
+    )
+
+
 if __name__ == "__main__":
+    import os
     cli()
