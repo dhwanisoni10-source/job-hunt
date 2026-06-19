@@ -10,6 +10,7 @@ Heuristics run first (fast, free). Claude fills in the rest if ANTHROPIC_API_KEY
 import os
 import re
 import json
+import time
 import anthropic
 from src.models import Job
 
@@ -164,30 +165,45 @@ salary_score: 10=clearly $150k+, 7=likely $100-130k, 4=unclear, 1=clearly under 
 entry_score: 10=perfect for career pivot/no experience needed, 5=neutral, 1=requires 8+ years or specific tech stack she doesn't have"""
 
 
-def claude_score(job: Job) -> dict:
-    """Call Claude to get salary + entry scores. Returns dict with keys salary_score, entry_score, reasoning."""
+def claude_score(job: Job, max_retries: int = 2) -> dict:
+    """Call Claude to get salary + entry scores. Returns dict with keys salary_score, entry_score, reasoning.
+    
+    Includes retry logic with exponential backoff for rate limiting."""
     key = os.getenv("ANTHROPIC_API_KEY")
     if not key:
         return {}
 
-    try:
-        client = anthropic.Anthropic(api_key=key)
-        prompt = f"""Job: {job.title} at {job.company}
+    for attempt in range(max_retries):
+        try:
+            client = anthropic.Anthropic(api_key=key)
+            prompt = f"""Job: {job.title} at {job.company}
 Location: {job.location}
 Salary listed: {job.salary or 'not stated'}
 Description (first 1200 chars):
 {(job.description or '')[:1200]}"""
 
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",  # fast + cheap for scoring
-            max_tokens=120,
-            system=SCORE_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = msg.content[0].text.strip()
-        return json.loads(raw)
-    except Exception:
-        return {}
+            msg = client.messages.create(
+                model="claude-haiku-4-5-20251001",  # fast + cheap for scoring
+                max_tokens=120,
+                system=SCORE_SYSTEM,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            raw = msg.content[0].text.strip()
+            return json.loads(raw)
+        except anthropic.RateLimitError:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # exponential backoff: 1s, 2s, etc.
+                time.sleep(wait_time)
+                continue
+            else:
+                # Rate limit exhausted, return heuristic scores
+                return {}
+        except (json.JSONDecodeError, anthropic.APIError, KeyError):
+            # Invalid JSON or API error, return empty to use heuristics
+            return {}
+        except Exception:
+            # Any other error, return empty to use heuristics
+            return {}
 
 
 # ── Public interface ──────────────────────────────────────────────────────────
