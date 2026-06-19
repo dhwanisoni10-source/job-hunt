@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────
+#  Job Hunt Configuration — edit this file
+# ─────────────────────────────────────────────
+
+candidate:
+  name: "Dhwani Soni"
+  email: "sonidhwaniwork@gmail.com"
+  phone: "734-309-2161"
+  location: "Westland, MI 48185"
+  linkedin: ""          # add your LinkedIn URL
+  portfolio: ""         # optional
+
+target:
+  roles:
+    - "Product Manager"
+    - "Associate Product Manager"
+    - "Clinical Product Manager"
+    - "Health Tech Product Manager"
+    - "Digital Health Product Manager"
+  industries:
+    - "Healthcare"
+    - "Digital Health"
+    - "Health Tech"
+    - "MedTech"
+    - "Telehealth"
+  locations:
+    - "Michigan"
+    - "Detroit, MI"
+    - "Remote"
+  experience_level: "mid"       # entry | mid | senior
+  min_salary: 75000             # optional filter
+  exclude_keywords:
+    - "10+ years"
+    - "VP"
+    - "Director"
+
+search:
+  boards:
+    - indeed
+    - linkedin
+  max_jobs_per_run: 30
+  days_back: 7                  # only jobs posted in last N days
+
+outreach:
+  send_cold_emails: true
+  signature: |
+    Dhwani Soni
+    Clinical Exercise Physiologist → Product Manager
+    sonidhwaniwork@gmail.com | 734-309-2161
+
+resume:
+  google_drive_file_id: "1-eotStJokq2UnBYoqV8p0BJpyWia4CV3-ZhTSGHQRIA"
+  master_resume_path: "master_resume.txt"
+
+tracking:
+  db_path: "jobs.db"
+  google_sheet_id: ""   # filled automatically on first run
