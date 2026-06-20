@@ -2,6 +2,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs";
 
+function parseJSON(text) {
+  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  return JSON.parse(cleaned);
+}
+
 const client = new Anthropic();
 const profile = JSON.parse(fs.readFileSync("./candidate.json", "utf8"));
 
@@ -33,7 +38,7 @@ ${jobText}`,
     ],
   });
 
-  return JSON.parse(response.content[0].text);
+  return parseJSON(response.content[0].text);
 }
 
 export async function tailorResumeSummary(jobAnalysis) {
@@ -112,5 +117,5 @@ Job: ${JSON.stringify(jobAnalysis)}`,
     ],
   });
 
-  return JSON.parse(response.content[0].text);
+  return parseJSON(response.content[0].text);
 }
