@@ -1,0 +1,59 @@
+{
+  "name": "Dhwani Soni",
+  "email": "sonidhwaniwork@gmail.com",
+  "phone": "(734) 309-2161",
+  "location": "Westland, MI (open to NYC relocation)",
+  "title": "Clinical Exercise Physiologist",
+  "certifications": ["ACSM-CEP (candidate)", "ACLS", "BLS"],
+  "skills": [
+    "Cardiac Rehabilitation (Phase II/III)",
+    "EKG/Telemetry Monitoring",
+    "Exercise Prescription (FITT-VP)",
+    "Epic EMR",
+    "Pulmonary Rehabilitation",
+    "ACSM Risk Stratification",
+    "Telehealth/Virtual Care",
+    "Patient Education"
+  ],
+  "experience": [
+    {
+      "title": "Clinical Exercise Physiologist",
+      "company": "Carda Health",
+      "start": "April 2026",
+      "end": "Present",
+      "bullets": [
+        "Deliver virtual Phase II cardiac rehab sessions via telehealth platform",
+        "Monitor and manage live clinical events remotely with real-time documentation"
+      ]
+    },
+    {
+      "title": "Clinical Exercise Physiologist",
+      "company": "Trinity Health",
+      "location": "Livonia, MI",
+      "start": "September 2024",
+      "end": "April 2026",
+      "bullets": [
+        "Conducted Phase II cardiac and pulmonary rehabilitation sessions",
+        "Performed EKG monitoring and ACSM-based exercise prescription"
+      ]
+    },
+    {
+      "title": "Clinical Exercise Physiologist",
+      "company": "Corewell Health / Beaumont",
+      "location": "Royal Oak, MI",
+      "start": "June 2022",
+      "end": "September 2024",
+      "bullets": [
+        "Managed caseload of cardiac rehab patients across Phase II/III",
+        "Documented progress notes and clinical outcomes in Epic EMR"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "BS, Kinesiology: Exercise & Sport Science",
+      "school": "Wayne State University",
+      "year": "2020"
+    }
+  ]
+}
