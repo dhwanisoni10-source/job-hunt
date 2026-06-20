@@ -2,8 +2,10 @@
   "name": "job-applier",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "type": "module",
+  "main": "apply.js",
   "scripts": {
+    "start": "node apply.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
