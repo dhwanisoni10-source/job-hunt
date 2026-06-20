@@ -7,14 +7,22 @@ import {
   shouldApply,
 } from "./claude.js";
 import { logApplication } from "./tracker.js";
+import { fillApplication } from "./autofill.js";
 import fs from "fs";
 
+const RESUME_PATH = "./resume.pdf";
+
 async function processJob(input) {
+  const autofill = process.argv.includes("--autofill");
+  const force = process.argv.includes("--force");
+
   console.log("\n🔍 Processing job...");
 
   // Accept URL or raw text
   let jobText;
+  let jobUrl = null;
   if (input.startsWith("http")) {
+    jobUrl = input;
     console.log("   Scraping URL...");
     jobText = await scrapeJobPosting(input);
   } else {
@@ -34,9 +42,8 @@ async function processJob(input) {
 
   if (!recommendation.recommend) {
     console.log("   ⚠️  Claude recommends skipping this role.");
-    const proceed = process.argv.includes("--force");
-    if (!proceed) {
-      console.log('   (Use --force to apply anyway)\n');
+    if (!force) {
+      console.log("   (Use --force to apply anyway)\n");
       return;
     }
   }
@@ -62,18 +69,43 @@ async function processJob(input) {
   console.log(`   ✓ Files saved to ${outputDir}/`);
 
   // Step 5: Log to tracker
-  logApplication(jobAnalysis, coverLetter, recommendation.matchScore);
+  logApplication(jobAnalysis, coverLetter, recommendation.matchScore, "generated");
   console.log("   ✓ Logged to applications.json");
 
-  console.log("\n✅ Done! Review files before submitting.\n");
+  // Step 6: Autofill (optional)
+  if (autofill) {
+    const applyUrl = jobUrl || jobAnalysis.applicationUrl;
+    if (!applyUrl) {
+      console.log("\n⚠️  --autofill requires a URL. No application URL found in job posting.");
+    } else {
+      const candidate = JSON.parse(fs.readFileSync("./candidate.json", "utf8"));
+      console.log("\n🤖 Opening browser to fill application...");
+      console.log("   Review carefully before submitting!\n");
+      await fillApplication(applyUrl, {
+        name: candidate.name,
+        email: candidate.email,
+        phone: candidate.phone,
+        coverLetter,
+        resumePath: fs.existsSync(RESUME_PATH) ? RESUME_PATH : null,
+      });
+      logApplication(jobAnalysis, coverLetter, recommendation.matchScore, "submitted");
+      console.log("   ✓ Status updated to submitted in applications.json");
+    }
+  } else {
+    console.log("\n✅ Done! Review files before submitting.");
+    console.log(`   Tip: Re-run with --autofill to fill the form automatically.\n`);
+  }
+
   return { jobAnalysis, coverLetter, summary };
 }
 
-// Run from command line: node apply.js "https://..." or node apply.js "paste job text here"
-const input = process.argv.slice(2).join(" ");
-if (!input || input === "--force") {
-  console.log('Usage: node apply.js "https://job-url.com"');
-  console.log('   or: node apply.js "paste job description text here"');
+// Parse input — strip flags from the joined string
+const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const input = args.join(" ");
+
+if (!input) {
+  console.log('Usage: node apply.js "https://job-url.com" [--autofill] [--force]');
+  console.log('   or: node apply.js "paste job description text here" [--force]');
   process.exit(1);
 }
 
