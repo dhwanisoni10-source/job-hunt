@@ -7,6 +7,8 @@ Usage:
   python run.py run --no-tailor  # find + score only (no AI tailoring calls)
   python run.py run --no-ai-score # heuristic scoring only (no Claude scoring API)
   python run.py run --sheets     # also sync to Google Sheets
+  python run.py apply            # auto-send outreach emails to top companies
+  python run.py apply --dry-run  # preview what would be sent, no emails sent
   python run.py demo             # run scoring on sample jobs (works offline)
   python run.py top              # show top-ranked jobs by score
   python run.py show             # show all tracked jobs
@@ -166,6 +168,129 @@ def stats(config_path):
         if stage in s:
             table.add_row(stage, str(s[stage]))
     console.print(table)
+
+
+@cli.command()
+@click.option("--status", default="tailored", help="Apply to jobs with this status (default: tailored)")
+@click.option("--dry-run", is_flag=True, help="Preview what would be sent without actually sending")
+@click.option("--resume", "resume_path", default=None, help="Path to resume PDF/docx to attach")
+@click.option("--delay", default=3.0, help="Seconds between sends (default: 3)")
+@click.option("--config", "config_path", default="config.yaml")
+def apply(status, dry_run, resume_path, delay, config_path):
+    """Auto-apply to top-scored jobs: sends outreach emails via Gmail.
+
+    \b
+    Workflow:
+      1. Picks all jobs with --status (default: 'tailored')
+      2. Sends the pre-drafted outreach email to each company's recruiter inbox
+      3. Opens the job URL in your browser so you can complete any ATS form
+      4. Marks each job as 'applied' (or 'outreach_sent' if Gmail not set up)
+
+    \b
+    Prerequisites:
+      - Run `python run.py run` first to generate outreach emails
+      - Set up Google OAuth: put credentials.json in this folder
+        (Google Cloud Console → APIs & Services → Credentials → OAuth 2.0)
+
+    \b
+    Safe to test first:
+      python run.py apply --dry-run
+    """
+    from src.tracker import Tracker
+    from src.autoapply import auto_apply_batch
+
+    config = load_config(config_path)
+    tracker = Tracker(config["tracking"]["db_path"])
+    candidate_email = config["candidate"]["email"]
+
+    jobs = tracker.get_new_jobs(status)
+    if not jobs:
+        console.print(f"[yellow]No jobs with status '{status}'. Run `python run.py run` first.[/yellow]")
+        return
+
+    # Only apply to jobs with an outreach email drafted
+    ready = [j for j in jobs if j.get("outreach_email")]
+    skipped = len(jobs) - len(ready)
+
+    console.rule(f"[bold blue]Auto-Apply — {len(ready)} jobs ready {'(DRY RUN)' if dry_run else ''}")
+    if skipped:
+        console.print(f"[yellow]Skipping {skipped} jobs with no outreach email drafted.[/yellow]")
+
+    if not ready:
+        console.print("[red]Nothing to apply to. Run `python run.py run` to generate outreach emails first.[/red]")
+        return
+
+    # Show preview table
+    table = Table(title="Jobs to Apply To", show_lines=True)
+    table.add_column("#", width=3)
+    table.add_column("Title", style="bold", width=28)
+    table.add_column("Company", width=18)
+    table.add_column("Score", width=6, justify="right")
+    table.add_column("Salary", width=20)
+    table.add_column("Apply URL", width=35)
+
+    for i, j in enumerate(ready, 1):
+        table.add_row(
+            str(i),
+            j["title"][:28],
+            j["company"][:18],
+            str(j.get("total_score") or "—"),
+            j.get("salary") or "—",
+            (j["url"] or "")[:35],
+        )
+    console.print(table)
+
+    if dry_run:
+        console.print("\n[bold yellow]DRY RUN — no emails sent. Remove --dry-run to apply for real.[/bold yellow]")
+        return
+
+    if not click.confirm(f"\nSend outreach emails to {len(ready)} companies?"):
+        console.print("[yellow]Cancelled.[/yellow]")
+        return
+
+    console.print()
+    results = auto_apply_batch(
+        jobs=ready,
+        db_path=config["tracking"]["db_path"],
+        candidate_email=candidate_email,
+        resume_path=resume_path,
+        dry_run=False,
+        delay_seconds=delay,
+    )
+
+    # Results summary
+    sent = [r for r in results if r.get("sent")]
+    drafted = [r for r in results if r.get("draft_id")]
+    failed = [r for r in results if not r.get("sent") and not r.get("draft_id")]
+
+    console.rule("[bold blue]Apply Results")
+    result_table = Table(show_lines=True)
+    result_table.add_column("Company", width=20)
+    result_table.add_column("Status", width=16)
+    result_table.add_column("Sent To", width=35)
+
+    for r in results:
+        if r.get("sent"):
+            status_str = "[green]✓ Email sent[/green]"
+        elif r.get("draft_id"):
+            status_str = "[yellow]Draft created[/yellow]"
+        elif r.get("skipped"):
+            status_str = "[dim]Skipped[/dim]"
+        else:
+            status_str = "[red]Failed[/red]"
+        result_table.add_row(r.get("company", ""), status_str, r.get("to", ""))
+
+    console.print(result_table)
+    console.print(
+        f"\n[bold green]{len(sent)} sent[/bold green]  "
+        f"[yellow]{len(drafted)} drafted[/yellow]  "
+        f"[red]{len(failed)} failed[/red]"
+    )
+
+    if drafted:
+        console.print("\n[dim]Drafts are in your Gmail — review and send manually.[/dim]")
+    if sent:
+        console.print("[dim]Job URLs opened in your browser — complete any ATS forms.[/dim]")
 
 
 @cli.command()
